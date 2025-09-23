@@ -17,6 +17,7 @@ export interface IStorage {
   getOrder(id: string): Promise<OrderWithDetails | undefined>;
   createOrder(order: InsertOrder): Promise<OrderWithDetails>;
   updateOrderStatus(id: string, status: string): Promise<void>;
+  updateOrderStatusByOrderNumber(orderNumber: string, status: string): Promise<boolean>;
   
   // Inventory
   getInventory(): Promise<InventoryWithProduct[]>;
@@ -348,6 +349,19 @@ export class MemStorage implements IStorage {
       order.status = status;
       order.updatedAt = new Date();
     }
+  }
+
+  async updateOrderStatusByOrderNumber(orderNumber: string, status: string): Promise<boolean> {
+    // Find order by order number
+    const orders = Array.from(this.orders.values());
+    for (const order of orders) {
+      if (order.orderNumber === orderNumber) {
+        order.status = status;
+        order.updatedAt = new Date();
+        return true;
+      }
+    }
+    return false; // Order not found
   }
 
   async getInventory(): Promise<InventoryWithProduct[]> {

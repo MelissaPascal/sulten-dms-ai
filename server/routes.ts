@@ -88,7 +88,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Status is required" });
       }
 
+      // Try to update by ID first (UUID), then by order number
       await storage.updateOrderStatus(id, status);
+      const updatedByOrderNumber = await storage.updateOrderStatusByOrderNumber(id, status);
+      
+      if (!updatedByOrderNumber) {
+        // Check if we actually updated by ID by looking for the order
+        const order = await storage.getOrder(id);
+        if (!order) {
+          return res.status(404).json({ error: "Order not found" });
+        }
+      }
+      
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to update order status" });

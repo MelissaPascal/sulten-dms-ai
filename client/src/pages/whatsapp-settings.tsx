@@ -1,60 +1,93 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare, Phone, AlertTriangle, Package } from "lucide-react";
+import { MessageSquare, Phone, AlertTriangle, Package, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { WhatsAppConfig, InsertWhatsAppConfig } from "@shared/schema";
 
 export function WhatsAppSettings() {
   const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    enabled: false,
-    recipients: ['+18685550199'],
-    sendPOAlerts: true,
-    sendLowStockAlerts: true,
-  });
-
   const [newRecipient, setNewRecipient] = useState('');
 
+  // Fetch WhatsApp configuration from backend
+  const { data: settings, isLoading, error } = useQuery<WhatsAppConfig>({
+    queryKey: ['/api/whatsapp/config'],
+  });
+
+  // Local state for form editing
+  const [localSettings, setLocalSettings] = useState<WhatsAppConfig | null>(null);
+
+  // Update local settings when data is loaded
+  useEffect(() => {
+    if (settings && !localSettings) {
+      setLocalSettings(settings);
+    }
+  }, [settings, localSettings]);
+
+  // Mutation for saving settings
+  const saveMutation = useMutation({
+    mutationFn: (config: InsertWhatsAppConfig) => 
+      apiRequest('PUT', '/api/whatsapp/config', config),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/whatsapp/config'] });
+      toast({
+        title: "Settings Saved",
+        description: "WhatsApp notification settings have been updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save WhatsApp notification settings. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAddRecipient = () => {
-    if (newRecipient.trim()) {
-      if (!newRecipient.match(/^\+1868\d{7}$/)) {
-        toast({
-          title: "Invalid Phone Number",
-          description: "Please enter a valid Trinidad & Tobago number (+1868XXXXXXX)",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (!settings.recipients.includes(newRecipient)) {
-        setSettings(prev => ({
-          ...prev,
-          recipients: [...prev.recipients, newRecipient]
-        }));
-        setNewRecipient('');
-        toast({
-          title: "Recipient Added",
-          description: `Added ${newRecipient} to notification list`,
-        });
-      } else {
-        toast({
-          title: "Duplicate Number",
-          description: "This number is already in the recipients list",
-          variant: "destructive",
-        });
-      }
+    if (!localSettings || !newRecipient.trim()) return;
+    
+    if (!newRecipient.match(/^\+1868\d{7}$/)) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid Trinidad & Tobago number (+1868XXXXXXX)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!localSettings.recipients.includes(newRecipient)) {
+      setLocalSettings(prev => prev ? ({
+        ...prev,
+        recipients: [...prev.recipients, newRecipient]
+      }) : null);
+      setNewRecipient('');
+      toast({
+        title: "Recipient Added",
+        description: `Added ${newRecipient} to notification list`,
+      });
+    } else {
+      toast({
+        title: "Duplicate Number",
+        description: "This number is already in the recipients list",
+        variant: "destructive",
+      });
     }
   };
 
   const handleRemoveRecipient = (phone: string) => {
-    setSettings(prev => ({
+    if (!localSettings) return;
+    
+    setLocalSettings(prev => prev ? ({
       ...prev,
       recipients: prev.recipients.filter(r => r !== phone)
-    }));
+    }) : null);
     toast({
       title: "Recipient Removed",
       description: `Removed ${phone} from notification list`,
@@ -62,12 +95,33 @@ export function WhatsAppSettings() {
   };
 
   const handleSave = () => {
-    // In a real application, this would save to backend/database
-    toast({
-      title: "Settings Saved",
-      description: "WhatsApp notification settings have been updated",
-    });
+    if (!localSettings) return;
+    
+    saveMutation.mutate(localSettings);
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        Loading WhatsApp settings...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-red-600 dark:text-red-400">
+          Failed to load WhatsApp settings. Please refresh the page.
+        </div>
+      </div>
+    );
+  }
+
+  if (!localSettings) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto p-6">
@@ -104,8 +158,8 @@ export function WhatsAppSettings() {
                 </div>
                 <Switch
                   data-testid="switch-whatsapp-enabled"
-                  checked={settings.enabled}
-                  onCheckedChange={(enabled) => setSettings(prev => ({ ...prev, enabled }))}
+                  checked={localSettings.enabled}
+                  onCheckedChange={(enabled) => setLocalSettings(prev => prev ? ({ ...prev, enabled }) : null)}
                 />
               </div>
               
@@ -145,8 +199,8 @@ export function WhatsAppSettings() {
                 </div>
                 <Switch
                   data-testid="switch-po-alerts"
-                  checked={settings.sendPOAlerts}
-                  onCheckedChange={(enabled) => setSettings(prev => ({ ...prev, sendPOAlerts: enabled }))}
+                  checked={localSettings.sendPOAlerts}
+                  onCheckedChange={(enabled) => setLocalSettings(prev => prev ? ({ ...prev, sendPOAlerts: enabled }) : null)}
                 />
               </div>
 
@@ -161,8 +215,8 @@ export function WhatsAppSettings() {
                 </div>
                 <Switch
                   data-testid="switch-low-stock-alerts"
-                  checked={settings.sendLowStockAlerts}
-                  onCheckedChange={(enabled) => setSettings(prev => ({ ...prev, sendLowStockAlerts: enabled }))}
+                  checked={localSettings.sendLowStockAlerts}
+                  onCheckedChange={(enabled) => setLocalSettings(prev => prev ? ({ ...prev, sendLowStockAlerts: enabled }) : null)}
                 />
               </div>
             </div>
@@ -202,12 +256,12 @@ export function WhatsAppSettings() {
 
               {/* Current Recipients */}
               <div className="space-y-2">
-                <Label>Current Recipients ({settings.recipients.length})</Label>
-                {settings.recipients.length === 0 ? (
+                <Label>Current Recipients ({localSettings.recipients.length})</Label>
+                {localSettings.recipients.length === 0 ? (
                   <p className="text-gray-500 dark:text-gray-400 text-sm">No recipients configured</p>
                 ) : (
                   <div className="grid gap-2">
-                    {settings.recipients.map((phone, index) => (
+                    {localSettings.recipients.map((phone, index) => (
                       <div 
                         key={phone} 
                         className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"

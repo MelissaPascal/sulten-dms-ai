@@ -93,3 +93,20 @@ export interface OrderWithDetails extends Order {
 export interface InventoryWithProduct extends Inventory {
   product: Product;
 }
+
+// WhatsApp Configuration
+export interface WhatsAppConfig {
+  enabled: boolean;
+  recipients: string[];
+  sendPOAlerts: boolean;
+  sendLowStockAlerts: boolean;
+}
+
+export const insertWhatsAppConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  recipients: z.array(z.string()).default(['+18685550199']),
+  sendPOAlerts: z.boolean().default(true),
+  sendLowStockAlerts: z.boolean().default(true),
+});
+
+export type InsertWhatsAppConfig = z.infer<typeof insertWhatsAppConfigSchema>;

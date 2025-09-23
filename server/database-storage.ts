@@ -10,6 +10,8 @@ import {
   type SalesTarget, 
   type OrderWithDetails, 
   type InventoryWithProduct,
+  type WhatsAppConfig,
+  type InsertWhatsAppConfig,
   retailers,
   products,
   orders,
@@ -20,9 +22,14 @@ import { db } from "./db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import type { IStorage } from "./storage";
 import { whatsAppService } from "./whatsapp";
-import { getWhatsAppConfig } from "./whatsapp-config";
 
 export class DatabaseStorage implements IStorage {
+  private whatsAppConfig: WhatsAppConfig = {
+    enabled: false,
+    recipients: ['+18685550199'],
+    sendPOAlerts: true,
+    sendLowStockAlerts: true,
+  };
   
   // Retailers
   async getRetailers(): Promise<Retailer[]> {
@@ -175,7 +182,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Send WhatsApp notifications based on configuration
-    const config = getWhatsAppConfig();
+    const config = await this.getWhatsAppConfig();
     
     if (config.enabled && config.sendPOAlerts) {
       try {
@@ -388,5 +395,20 @@ export class DatabaseStorage implements IStorage {
       avgOrderValue,
       lowStockItems,
     };
+  }
+
+  // WhatsApp Configuration
+  async getWhatsAppConfig(): Promise<WhatsAppConfig> {
+    return this.whatsAppConfig;
+  }
+
+  async updateWhatsAppConfig(config: InsertWhatsAppConfig): Promise<WhatsAppConfig> {
+    this.whatsAppConfig = {
+      enabled: config.enabled,
+      recipients: config.recipients.map(r => r.trim()).filter(r => r.length > 0),
+      sendPOAlerts: config.sendPOAlerts,
+      sendLowStockAlerts: config.sendLowStockAlerts,
+    };
+    return this.whatsAppConfig;
   }
 }

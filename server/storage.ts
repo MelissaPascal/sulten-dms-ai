@@ -1,4 +1,4 @@
-import { type Retailer, type InsertRetailer, type Product, type InsertProduct, type Order, type InsertOrder, type Inventory, type InsertInventory, type SalesTarget, type OrderWithDetails, type InventoryWithProduct } from "@shared/schema";
+import { type Retailer, type InsertRetailer, type Product, type InsertProduct, type Order, type InsertOrder, type Inventory, type InsertInventory, type SalesTarget, type OrderWithDetails, type InventoryWithProduct, type WhatsAppConfig, type InsertWhatsAppConfig } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { DatabaseStorage } from "./database-storage";
 
@@ -29,6 +29,10 @@ export interface IStorage {
   getSalesTarget(month: number, year: number): Promise<SalesTarget | undefined>;
   updateSalesTarget(month: number, year: number, currentAmount: string): Promise<void>;
   
+  // WhatsApp Configuration
+  getWhatsAppConfig(): Promise<WhatsAppConfig>;
+  updateWhatsAppConfig(config: InsertWhatsAppConfig): Promise<WhatsAppConfig>;
+  
   // Dashboard metrics
   getDashboardMetrics(): Promise<{
     totalOrders: number;
@@ -45,6 +49,12 @@ export class MemStorage implements IStorage {
   private orders: Map<string, Order> = new Map();
   private inventory: Map<string, Inventory> = new Map();
   private salesTargets: Map<string, SalesTarget> = new Map();
+  private whatsAppConfig: WhatsAppConfig = {
+    enabled: false,
+    recipients: ['+18685550199'],
+    sendPOAlerts: true,
+    sendLowStockAlerts: true,
+  };
 
   constructor() {
     this.initializeData();
@@ -453,6 +463,21 @@ export class MemStorage implements IStorage {
       avgOrderValue,
       lowStockItems,
     };
+  }
+
+  // WhatsApp Configuration
+  async getWhatsAppConfig(): Promise<WhatsAppConfig> {
+    return this.whatsAppConfig;
+  }
+
+  async updateWhatsAppConfig(config: InsertWhatsAppConfig): Promise<WhatsAppConfig> {
+    this.whatsAppConfig = {
+      enabled: config.enabled,
+      recipients: config.recipients.map(r => r.trim()).filter(r => r.length > 0),
+      sendPOAlerts: config.sendPOAlerts,
+      sendLowStockAlerts: config.sendLowStockAlerts,
+    };
+    return this.whatsAppConfig;
   }
 }
 

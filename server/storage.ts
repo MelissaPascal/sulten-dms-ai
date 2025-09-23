@@ -1,5 +1,6 @@
 import { type Retailer, type InsertRetailer, type Product, type InsertProduct, type Order, type InsertOrder, type Inventory, type InsertInventory, type SalesTarget, type OrderWithDetails, type InventoryWithProduct } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { DatabaseStorage } from "./database-storage";
 
 export interface IStorage {
   // Retailers
@@ -455,4 +456,107 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Use DatabaseStorage for persistent data
+export const storage = new DatabaseStorage();
+
+// Initialize with sample data if database is empty
+async function initializeDatabase() {
+  try {
+    const existingRetailers = await storage.getRetailers();
+    if (existingRetailers.length === 0) {
+      console.log("Initializing database with sample data...");
+      
+      // Create sample retailers
+      const retailer1 = await storage.createRetailer({
+        name: "Supreme Grocers",
+        location: "Port of Spain",
+        contactNumber: "+1868-555-0101",
+        email: "orders@supremegrocers.tt",
+      });
+
+      const retailer2 = await storage.createRetailer({
+        name: "City Market Express",
+        location: "San Fernando",
+        contactNumber: "+1868-555-0102",
+        email: "procurement@citymarket.tt",
+      });
+
+      const retailer3 = await storage.createRetailer({
+        name: "Fresh Mart Ltd",
+        location: "Chaguanas",
+        contactNumber: "+1868-555-0103",
+        email: "orders@freshmart.tt",
+      });
+
+      // Create sample products (automatically creates inventory entries)
+      const product1 = await storage.createProduct({
+        name: "Rice Cakes - Original",
+        description: "Original flavor rice cakes, 24 units per case",
+        pricePerUnit: "14.00",
+        unitsPerCase: 24,
+        reorderThreshold: 20,
+      });
+
+      const product2 = await storage.createProduct({
+        name: "Rice Cakes - Sesame",
+        description: "Sesame flavor rice cakes, 24 units per case",
+        pricePerUnit: "16.00",
+        unitsPerCase: 24,
+        reorderThreshold: 20,
+      });
+
+      const product3 = await storage.createProduct({
+        name: "Rice Cakes - Multigrain",
+        description: "Multigrain rice cakes, 12 units per case",
+        pricePerUnit: "21.00",
+        unitsPerCase: 12,
+        reorderThreshold: 20,
+      });
+
+      // Update inventory with initial stock levels (before creating orders)
+      await storage.updateInventory(product1.id, 63); // Start with higher stock 
+      await storage.updateInventory(product2.id, 32);  // Start with higher stock 
+      await storage.updateInventory(product3.id, 192); // Start with higher stock
+
+      // Create sample orders (these will decrement stock)
+      await storage.createOrder({
+        retailerId: retailer1.id,
+        productId: product1.id,
+        quantity: 48,
+        totalAmount: "672.00",
+        status: "completed",
+      });
+
+      await storage.createOrder({
+        retailerId: retailer2.id,
+        productId: product2.id,
+        quantity: 24,
+        totalAmount: "384.00",
+        status: "processing",
+      });
+
+      await storage.createOrder({
+        retailerId: retailer3.id,
+        productId: product3.id,
+        quantity: 36,
+        totalAmount: "756.00",
+        status: "pending",
+      });
+
+      // Initialize sales target for current month
+      const currentDate = new Date();
+      await storage.updateSalesTarget(
+        currentDate.getMonth() + 1,
+        currentDate.getFullYear(),
+        "18750.00"
+      );
+
+      console.log("Database initialized with sample data successfully!");
+    }
+  } catch (error) {
+    console.error("Failed to initialize database:", error);
+  }
+}
+
+// Initialize database when module loads
+initializeDatabase();

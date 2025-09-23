@@ -19,6 +19,8 @@ import {
 import { db } from "./db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import type { IStorage } from "./storage";
+import { whatsAppService } from "./whatsapp";
+import { getWhatsAppConfig } from "./whatsapp-config";
 
 export class DatabaseStorage implements IStorage {
   
@@ -170,6 +172,39 @@ export class DatabaseStorage implements IStorage {
     const orderWithDetails = await this.getOrder(order.id);
     if (!orderWithDetails) {
       throw new Error("Failed to retrieve created order");
+    }
+
+    // Send WhatsApp notifications based on configuration
+    const config = getWhatsAppConfig();
+    
+    if (config.enabled && config.sendPOAlerts) {
+      try {
+        await whatsAppService.sendPOAlert({
+          orderNumber: orderWithDetails.orderNumber,
+          retailerName: orderWithDetails.retailer.name,
+          productName: orderWithDetails.product.name,
+          quantity: orderWithDetails.quantity,
+          totalAmount: parseFloat(orderWithDetails.totalAmount)
+        }, config.recipients);
+      } catch (error) {
+        console.error('Failed to send WhatsApp PO alert:', error);
+      }
+    }
+
+    // Check if inventory is below reorder threshold and send low stock alert
+    const inventoryItem = await this.getInventoryByProduct(orderData.productId);
+    if (inventoryItem && inventoryItem.currentStock <= inventoryItem.product.reorderThreshold) {
+      if (config.enabled && config.sendLowStockAlerts) {
+        try {
+          await whatsAppService.sendLowStockAlert({
+            productName: inventoryItem.product.name,
+            currentStock: inventoryItem.currentStock,
+            reorderThreshold: inventoryItem.product.reorderThreshold
+          }, config.recipients);
+        } catch (error) {
+          console.error('Failed to send WhatsApp low stock alert:', error);
+        }
+      }
     }
 
     return orderWithDetails;

@@ -1,4 +1,4 @@
-import { BarChart3, ShoppingCart, Package } from "lucide-react";
+import { BarChart3, ShoppingCart, Package, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +26,12 @@ export function DesktopNav({ activeTab, onTabChange }: DesktopNavProps) {
       label: "Inventory", 
       icon: Package,
       testId: "tab-inventory-desktop"
+    },
+    {
+      id: "settings",
+      label: "WhatsApp",
+      icon: MessageSquare,
+      testId: "tab-whatsapp-desktop"
     }
   ];
 

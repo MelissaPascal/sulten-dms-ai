@@ -1,4 +1,4 @@
-import { BarChart3, ShoppingCart, Package } from "lucide-react";
+import { BarChart3, ShoppingCart, Package, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MobileNavProps {
@@ -25,6 +25,12 @@ export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
       label: "Inventory",
       icon: Package,
       testId: "tab-inventory"
+    },
+    {
+      id: "settings",
+      label: "WhatsApp",
+      icon: MessageSquare,
+      testId: "tab-whatsapp"
     }
   ];
 

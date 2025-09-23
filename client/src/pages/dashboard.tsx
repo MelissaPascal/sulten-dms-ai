@@ -10,6 +10,7 @@ import { InventoryAlerts } from "@/components/inventory-alerts";
 import { InventoryGrid } from "@/components/inventory-grid";
 import { MobileNav } from "@/components/mobile-nav";
 import { DesktopNav } from "@/components/desktop-nav";
+import { WhatsAppSettings } from "@/pages/whatsapp-settings";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -38,6 +39,8 @@ export default function Dashboard() {
             <InventoryGrid />
           </div>
         );
+      case "settings":
+        return <WhatsAppSettings />;
       default:
         return null;
     }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,9 +7,11 @@ import { Progress } from "@/components/ui/progress";
 import { Download, PackagePlus } from "lucide-react";
 import { exportInventory } from "@/lib/export-utils";
 import { useToast } from "@/hooks/use-toast";
+import { AddProductDialog } from "@/components/add-product-dialog";
 import type { InventoryWithProduct } from "@shared/schema";
 
 export function InventoryGrid() {
+  const [showAddProductDialog, setShowAddProductDialog] = useState(false);
   const { toast } = useToast();
   
   const { data: inventory, isLoading } = useQuery<InventoryWithProduct[]>({
@@ -102,6 +105,7 @@ export function InventoryGrid() {
               variant="default" 
               size="sm"
               className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => setShowAddProductDialog(true)}
               data-testid="button-add-product"
             >
               <PackagePlus className="w-4 h-4 mr-2" />
@@ -163,6 +167,10 @@ export function InventoryGrid() {
           </div>
         )}
       </CardContent>
+      <AddProductDialog
+        open={showAddProductDialog}
+        onOpenChange={setShowAddProductDialog}
+      />
     </Card>
   );
 }

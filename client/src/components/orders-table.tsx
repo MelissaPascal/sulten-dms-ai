@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,9 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download, UserPlus } from "lucide-react";
 import { exportOrders } from "@/lib/export-utils";
 import { useToast } from "@/hooks/use-toast";
+import { AddRetailerDialog } from "@/components/add-retailer-dialog";
 import type { OrderWithDetails } from "@shared/schema";
 
 export function OrdersTable() {
+  const [showAddRetailerDialog, setShowAddRetailerDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -96,6 +99,7 @@ export function OrdersTable() {
               variant="default" 
               size="sm"
               className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => setShowAddRetailerDialog(true)}
               data-testid="button-add-retailer"
             >
               <UserPlus className="w-4 h-4 mr-2" />
@@ -150,6 +154,10 @@ export function OrdersTable() {
           </div>
         )}
       </CardContent>
+      <AddRetailerDialog
+        open={showAddRetailerDialog}
+        onOpenChange={setShowAddRetailerDialog}
+      />
     </Card>
   );
 }
